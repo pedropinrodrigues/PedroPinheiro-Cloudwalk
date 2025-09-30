@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:hive/hive.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'routes.dart';
 import 'screens/dashboard_screen.dart';
@@ -12,7 +13,10 @@ import 'theme/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Hive.initFlutter();
+  final supportDir = await getApplicationSupportDirectory();
+  Hive.init(supportDir.path);
+  // Helpful while debugging export paths.
+  debugPrint('Hive dir: ${supportDir.path}');
   await DataRepository.instance.ensureInitialized();
   runApp(const MgmApp());
 }

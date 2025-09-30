@@ -45,6 +45,7 @@ lib/
 - No mobile/desktop, os arquivos `.hive` residem no diretório de suporte da aplicação (ex.: iOS `Library/Application Support/mgm_data_box.hive`).
 - No Flutter web, os dados permanecem em memória enquanto a sessão estiver ativa.
 - É possível exportar todo o conteúdo em JSON chamando `DataRepository.exportAsJson()` (útil para backups ou inspeção manual).
+- Há um utilitário CLI em `bin/export_server.dart`. Rode `dart run bin/export_server.dart --hive-dir=<pasta>` para subir um servidor local (padrão http://127.0.0.1:8080/export) e baixar o dump JSON; o script copia os arquivos `.hive` para uma pasta temporária antes de gerar o snapshot (não precisa encerrar o app). 
 - Todos os fluxos (cadastro, edição de perfil, gamificação, notificações) trabalham sobre essa camada Hive, preservando a estrutura `{ settings, session, users, notifications }`.
 
 ## Observações
