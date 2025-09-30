@@ -32,16 +32,19 @@ lib/
 1. **Pré-requisitos**: Flutter 3.x instalado e configurado.
 2. Acesse o diretório do app: `cd mgm_app`.
 3. Instale dependências: `flutter pub get`.
-4. Execute no dispositivo ou emulador desejado: `flutter run`.
+4. Execute no dispositivo, emulador ou navegador desejado: `flutter run` (use `-d chrome` para web).
+5. Para login rápido, use um usuário seed: `maria@example.com` + senha `senha123` ou `joao@example.com` + senha `123456`.
 
 ### Testes
 - Há um teste básico garantindo que a tela de cadastro carregue: `flutter test`.
 
 ## Dados e Persistência
 - O arquivo único `data.json` é gerenciado por `lib/services/local_store.dart`.
-- Na primeira execução, o app cria o arquivo nas pastas de documentos da plataforma (por exemplo, em iOS simulators: `Library/Application Support/data.json`; em Android: `/data/data/<package>/app_flutter/data.json`).
+- O seed está versionado em `assets/data.json`; ele é carregado automaticamente na primeira inicialização (ou usado como fallback caso o arquivo real seja removido/corrompido).
+- Na primeira execução mobile/desktop, o app copia o seed para o diretório de documentos (ex.: iOS simulators `Library/Application Support/data.json`, Android `/data/data/<package>/app_flutter/data.json`).
+- No Flutter web, os dados ficam em `localStorage` (`window.localStorage['mgm_app_data']`).
 - O seed inicial inclui dois usuários de exemplo, notificações de conversão e bônus, além das configurações `{ bonus_every: 3, bonus_points: 50 }`.
-- Toda interação (cadastro, edição, notificações) atualiza este mesmo arquivo JSON, mantendo o MVP íntegro sem backend.
+- Toda interação (cadastro, edição, notificações, login) atualiza esse mesmo JSON, mantendo o MVP íntegro sem backend.
 
 ## Observações
 - A lógica de gamificação e pontos está centralizada em `DataRepository.awardConversionPoints`, que também gera as notificações.

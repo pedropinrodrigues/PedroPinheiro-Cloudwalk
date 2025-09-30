@@ -65,9 +65,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _saving = true);
     final repo = DataRepository.instance;
     try {
+      final newEmail = _emailController.text.trim();
+      if (newEmail.toLowerCase() != _user!.email.toLowerCase()) {
+        final emailTaken = await repo.isEmailTaken(newEmail);
+        if (emailTaken) {
+          _showSnack('Este e-mail já está em uso.');
+          setState(() => _saving = false);
+          return;
+        }
+      }
       final updated = _user!.copyWith(
         name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
+        email: newEmail,
         sex: _selectedSex,
         age: int.parse(_ageController.text.trim()),
         updatedAt: DateTime.now().toUtc(),

@@ -13,6 +13,8 @@ Map<String, dynamic> buildSeedData() {
         'my_code': '12345',
         'points_total': 150,
         'invited_by_code': null,
+        'password_hash':
+            '55a5e9e78207b4df8699d60886fa070079463547b095d1a05bc719bb4e6cd251',
         'created_at': '2024-01-10T12:00:00Z',
         'updated_at': '2024-01-10T12:00:00Z',
       },
@@ -25,6 +27,8 @@ Map<String, dynamic> buildSeedData() {
         'my_code': '67890',
         'points_total': 50,
         'invited_by_code': '12345',
+        'password_hash':
+            '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92',
         'created_at': '2024-02-01T15:30:00Z',
         'updated_at': '2024-02-01T15:30:00Z',
       },

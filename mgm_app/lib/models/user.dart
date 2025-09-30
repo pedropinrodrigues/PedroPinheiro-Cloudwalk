@@ -9,6 +9,7 @@ class AppUser {
     required this.pointsTotal,
     required this.createdAt,
     required this.updatedAt,
+    required this.passwordHash,
     this.invitedByCode,
   });
 
@@ -20,6 +21,7 @@ class AppUser {
   final String myCode;
   final int pointsTotal;
   final String? invitedByCode;
+  final String passwordHash;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -33,6 +35,7 @@ class AppUser {
       myCode: json['my_code'] as String,
       pointsTotal: (json['points_total'] as num).toInt(),
       invitedByCode: json['invited_by_code'] as String?,
+      passwordHash: json['password_hash'] as String,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -48,6 +51,7 @@ class AppUser {
       'my_code': myCode,
       'points_total': pointsTotal,
       'invited_by_code': invitedByCode,
+      'password_hash': passwordHash,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -61,6 +65,7 @@ class AppUser {
     String? myCode,
     int? pointsTotal,
     String? invitedByCode,
+    String? passwordHash,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -73,6 +78,7 @@ class AppUser {
       myCode: myCode ?? this.myCode,
       pointsTotal: pointsTotal ?? this.pointsTotal,
       invitedByCode: invitedByCode ?? this.invitedByCode,
+      passwordHash: passwordHash ?? this.passwordHash,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

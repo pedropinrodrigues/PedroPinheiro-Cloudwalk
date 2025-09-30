@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/app_notification.dart';
@@ -54,6 +57,16 @@ class DataRepository {
     return users.any((user) => user['my_code'] == code);
   }
 
+  Future<bool> isEmailTaken(String email) async {
+    final data = await _read();
+    final users = (data['users'] as List? ?? [])
+        .map((user) => Map<String, dynamic>.from(user as Map))
+        .toList();
+    return users.any(
+      (user) => (user['email'] as String).toLowerCase() == email.toLowerCase(),
+    );
+  }
+
   Future<AppUser?> findUserByCode(String code) async {
     final data = await _read();
     final users = (data['users'] as List? ?? [])
@@ -80,6 +93,19 @@ class DataRepository {
     return null;
   }
 
+  Future<AppUser?> findUserByEmail(String email) async {
+    final data = await _read();
+    final users = (data['users'] as List? ?? [])
+        .map((user) => Map<String, dynamic>.from(user as Map))
+        .toList();
+    for (final user in users) {
+      if ((user['email'] as String).toLowerCase() == email.toLowerCase()) {
+        return AppUser.fromJson(user);
+      }
+    }
+    return null;
+  }
+
   Future<AppUser> upsertUser(AppUser user) async {
     final data = await _read();
     final users = (data['users'] as List? ?? [])
@@ -94,6 +120,18 @@ class DataRepository {
     }
     data['users'] = users;
     await _write(data);
+    return user;
+  }
+
+  Future<AppUser?> authenticate(String email, String password) async {
+    final user = await findUserByEmail(email);
+    if (user == null) {
+      return null;
+    }
+    final hash = hashPassword(password);
+    if (hash != user.passwordHash) {
+      return null;
+    }
     return user;
   }
 
@@ -203,4 +241,10 @@ class DataRepository {
       'bonus_points': (settings['bonus_points'] as num).toInt(),
     };
   }
+}
+
+String hashPassword(String password) {
+  final bytes = utf8.encode(password);
+  final digest = sha256.convert(bytes);
+  return digest.toString();
 }
