@@ -1,0 +1,343 @@
+
+ROTEIRO (TXT) — MVP Flutter Member‑Get‑Member (ÚNICO JSON local)
+
+Objetivo
+--------
+Criar um app Flutter (somente front, sem backend) que usa APENAS UM arquivo JSON local (data.json) para guardar tudo:
+1) Login/Cadastro: coletar nome, email, sexo, idade e um código próprio de 5 dígitos (único); opcionalmente, “Código de indicação (quem te convidou)”. Persistir no mesmo JSON.
+2) Dashboard: mostrar pontos totais (inicia em 0), seu código e botão para COPIAR o código para a área de transferência.
+3) Regras de indicação: sempre que um novo usuário se cadastrar usando o código de outro, o indicador ganha +50 pontos e cria uma notificação registrada no mesmo JSON.
+4) Notificações: listar quem se cadastrou usando seu código e quantos pontos você ganhou (do mesmo JSON).
+5) Perfil: editar dados básicos (nome, email, sexo, idade) do usuário logado (código pode permanecer travado para simplicidade, ou permitir troca com validação de unicidade).
+6) Gamificação: exibir no Dashboard “Faltam X conversões para ganhar +50 bônus” considerando um bônus a cada N conversões (ex.: a cada 3 conversões, +50 extras).
+
+Stack e dependências
+--------------------
+- Flutter (3.x+)
+- path_provider (para ler/gravar o único arquivo JSON)
+- uuid (gerar ids) [opcional mas recomendado]
+- intl (formatar datas) [opcional]
+- (Clipboard) já faz parte do Flutter: `package:flutter/services.dart`
+
+pubspec.yaml (trecho)
+---------------------
+dependencies:
+  flutter:
+    sdk: flutter
+  path_provider: ^2.1.3
+  uuid: ^4.2.2
+  intl: ^0.19.0
+
+Estrutura de pastas/arquivos (sugestão)
+---------------------------------------
+lib/
+  main.dart
+  routes.dart
+  models/
+    user.dart
+    app_notification.dart
+  services/
+    local_store.dart          // leitura/escrita ÚNICO JSON (data.json)
+    data_repository.dart      // operações de alto nível sobre data.json
+  screens/
+    login_signup_screen.dart
+    dashboard_screen.dart
+    notifications_screen.dart
+    profile_screen.dart
+  widgets/
+    form_fields.dart          // inputs reaproveitáveis (opcional)
+
+Arquivo JSON ÚNICO
+------------------
+- Nome do arquivo: data.json (no diretório de documentos do app).
+- Estrutura base (top-level keys distintas por tipo):
+
+{
+  "schema_version": 1,
+  "settings": {
+    "bonus_every": 3,          // a cada 3 conversões, concede bônus
+    "bonus_points": 50
+  },
+  "session": {
+    "current_uid": null        // uid do usuário logado (ou null)
+  },
+  "users": [                   // lista de usuários
+    // AppUser...
+  ],
+  "notifications": [           // lista de notificações
+    // AppNotification...
+  ]
+}
+
+Esquemas de dados (dentro do ÚNICO JSON)
+----------------------------------------
+1) users (array de objetos AppUser)
+   {
+     "uid": "u-123",
+     "name": "Erich Rodrigues",
+     "email": "erich@ex.com",
+     "sex": "M" | "F" | "Outro",
+     "age": 28,
+     "my_code": "12345",           // código próprio (5 dígitos, único)
+     "points_total": 0,            // soma de pontos atual
+     "invited_by_code": "67890",   // opcional: quem convidou (se usado no signup)
+     "created_at": "2025-09-29T12:00:00Z",
+     "updated_at": "2025-09-29T12:00:00Z"
+   }
+
+2) notifications (array de objetos AppNotification)
+   {
+     "id": "n-001",
+     "inviter_uid": "u-XYZ",       // quem recebeu os pontos (indicador)
+     "inviter_code": "12345",
+     "invited_name": "Ana Souza",  // quem se cadastrou usando esse código
+     "points_awarded": 50,         // normalmente 50 por conversão
+     "type": "conversion" | "bonus",
+     "created_at": "2025-09-29T13:25:00Z"
+   }
+
+Regras de negócio
+-----------------
+Cadastro/Login (LoginSignupScreen):
+- Campos obrigatórios: nome (>=2), email válido, sexo, idade (>=13), “Seu código” (exatamente 5 dígitos).
+- Validar unicidade de “Seu código” em users.*my_code*.
+- Campo opcional “Código de indicação (quem te convidou)”:
+  * Se preenchido e for diferente do “Seu código”:
+    - Buscar o usuário indicador por *my_code*.
+    - Se existir:
+      1) Somar +50 pontos ao *points_total* do indicador.
+      2) Adicionar notificação type="conversion" para o indicador.
+      3) Verificar gamificação: contar total de conversões do indicador e, se for múltiplo de *settings.bonus_every*, conceder notificação type="bonus" e somar *settings.bonus_points* extras.
+- Persistir o novo usuário em users.
+- Salvar sessão: session.current_uid = uid do novo usuário.
+- Redirecionar para /dashboard.
+
+Dashboard (DashboardScreen):
+- Mostrar saudação, pontos totais, SEU código (com **botão para COPIAR** para a área de transferência).
+- Mostrar cartão de Gamificação:
+  * “Faltam X conversões para ganhar +50 bônus”,
+    onde:
+      totalConv = número de conversões que o usuário já recebeu (contar notifications do tipo "conversion" cujo inviter_uid == uid atual) OU quantidade de usuários cujo invited_by_code == my_code do usuário atual.
+      every = settings.bonus_every (ex.: 3)
+      rest = totalConv % every
+      faltam = (rest == 0) ? every : (every - rest)
+      → Texto: se rest == 0 e totalConv > 0, exibir “Você acabou de ganhar +50 bônus!”; caso contrário, exibir “Faltam <faltam> conversões...”
+
+Notificações (NotificationsScreen):
+- Listar notifications filtrando por inviter_uid == session.current_uid.
+- Exibir: “<invited_name> cadastrou-se usando seu código. +<points_awarded> pontos.” (para type="conversion")
+- Exibir: “BÔNUS desbloqueado! +<points_awarded> pontos.” (para type="bonus")
+- Mostrar data formatada (intl).
+
+Perfil (ProfileScreen):
+- Editar dados básicos do usuário logado: nome, email, sexo, idade.
+- (Opcional) Permitir alterar “Seu código” com validação de unicidade e 5 dígitos. Ou manter travado para reduzir complexidade.
+- Salvar alterações atualizando o mesmo objeto no array users e o campo updated_at.
+
+Navegação
+---------
+- / (LoginSignupScreen) → /dashboard → /notifications → /profile
+- routes.dart define as rotas nomeadas.
+
+Passo a passo de implementação
+------------------------------
+1) Criar projeto
+   flutter create mgm_app
+   cd mgm_app
+   Adicionar dependências e rodar: flutter pub get
+
+2) Modelos
+   lib/models/user.dart
+     class AppUser { uid,name,email,sex,age,myCode,pointsTotal,invitedByCode,createdAt,updatedAt; toJson/fromJson/copyWith; }
+
+   lib/models/app_notification.dart
+     class AppNotification { id,inviterUid,inviterCode,invitedName,pointsAwarded,type,createdAt; toJson/fromJson; }
+
+3) LocalStore — ÚNICO JSON
+   lib/services/local_store.dart
+   - Métodos principais:
+     Future<File> _file(); // data.json no diretório de documentos
+     Future<Map<String,dynamic>> readAll();    // lê tudo; se não existir, cria estrutura base
+     Future<void> writeAll(Map<String,dynamic> data); // escreve tudo (atomicamente)
+
+   - Estrutura base ao criar:
+     {
+       "schema_version": 1,
+       "settings": {"bonus_every": 3, "bonus_points": 50},
+       "session": {"current_uid": null},
+       "users": [],
+       "notifications": []
+     }
+
+4) DataRepository (operações de alto nível sobre o ÚNICO JSON)
+   lib/services/data_repository.dart
+   - getCurrentUser(), setCurrentUser(uid)
+   - isCodeTaken(code)
+   - upsertUser(AppUser u)
+   - findUserByCode(code), findUserByUid(uid)
+   - awardConversionPoints({inviterUid, inviterCode, invitedName})
+       → soma +50 pontos e cria notificação type="conversion"
+       → verifica bônus: total conversões do indicador e, se múltiplo de bonus_every, soma bonus_points e cria notificação type="bonus"
+   - listNotificationsFor(uid)
+   - countConversionsFor(uid)
+   - saveAll(data) / readAll()
+
+5) LoginSignupScreen
+   - Form: nome, email, sexo (Dropdown), idade (numérico), “Seu código (5 dígitos)”, “Código de indicação (opcional)”
+   - Validações: nome>=2, email válido, sexo obrigatório, idade>=13, código regex ^\d{5}$
+   - Unicidade do código: if (await dataRepo.isCodeTaken(myCode)) → erro
+   - Criação do usuário → dataRepo.upsertUser(...)
+   - Se inviteCode preenchido (e diferente do myCode):
+       final inviter = await dataRepo.findUserByCode(inviteCode);
+       if (inviter != null) await dataRepo.awardConversionPoints(inviterUid: inviter.uid, inviterCode: inviter.myCode, invitedName: user.name);
+   - session.current_uid = uid
+   - Navigator.pushReplacementNamed('/dashboard')
+
+6) DashboardScreen
+   - Carregar user atual, exibir pontos e código.
+   - **Botão COPIAR CÓDIGO** (Clipboard):
+       await Clipboard.setData(ClipboardData(text: user.myCode));
+       SnackBar “Código copiado!”
+   - Gamificação: calcular faltam = função abaixo (ver Snippets).
+
+7) NotificationsScreen
+   - Carregar notifications por inviter_uid = current_uid
+   - ListView.builder com mensagens por tipo (conversion/bonus)
+
+8) ProfileScreen
+   - Carregar dados do usuário atual
+   - Form para atualizar nome, email, sexo, idade
+   - Salvar: dataRepo.upsertUser(user.copyWith(..., updatedAt: now))
+
+Snippets úteis (Dart)
+---------------------
+LocalStore (data.json):
+-----------------------
+import 'dart:io';
+import 'dart:convert';
+import 'package:path_provider/path_provider.dart';
+
+class LocalStore {
+  static const _fileName = 'data.json';
+
+  Future<File> _file() async {
+    final dir = await getApplicationDocumentsDirectory();
+    final f = File('${dir.path}/$_fileName');
+    if (!await f.exists()) {
+      final base = {
+        "schema_version": 1,
+        "settings": {"bonus_every": 3, "bonus_points": 50},
+        "session": {"current_uid": null},
+        "users": [],
+        "notifications": []
+      };
+      await f.writeAsString(jsonEncode(base), flush: true);
+    }
+    return f;
+  }
+
+  Future<Map<String, dynamic>> readAll() async {
+    final f = await _file();
+    final raw = await f.readAsString();
+    return jsonDecode(raw) as Map<String, dynamic>;
+  }
+
+  Future<void> writeAll(Map<String, dynamic> data) async {
+    final f = await _file();
+    await f.writeAsString(jsonEncode(data), flush: true);
+  }
+}
+
+Cálculo “Faltam X conversões...”:
+---------------------------------
+int conversionsUntilNextBonus({required int totalConv, required int every}) {
+  if (every <= 0) return 0;
+  final rest = totalConv % every;
+  return rest == 0 ? every : (every - rest);
+}
+
+Exemplo de uso no Dashboard:
+----------------------------
+final settings = data["settings"];
+final every = settings["bonus_every"] as int;
+final totalConv = await dataRepo.countConversionsFor(currentUid);
+final faltam = conversionsUntilNextBonus(totalConv: totalConv, every: every);
+// UI: if (totalConv > 0 && totalConv % every == 0) → “Você ganhou +50 bônus!”
+/// else → “Faltam $faltam conversões para ganhar +50 bônus”
+
+Copiar código para a área de transferência:
+------------------------------------------
+import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
+
+Future<void> copyCode(BuildContext ctx, String code) async {
+  await Clipboard.setData(ClipboardData(text: code));
+  ScaffoldMessenger.of(ctx).showSnackBar(
+    const SnackBar(content: Text('Código copiado!')),
+  );
+}
+
+Fluxo de pontos e notificações (pseudo):
+----------------------------------------
+Future<void> awardConversionPoints({required String inviterUid, required String inviterCode, required String invitedName}) async {
+  final data = await store.readAll();
+  // 1) +50 pontos
+  final users = (data["users"] as List).cast<Map<String, dynamic>>();
+  final idx = users.indexWhere((u) => u["uid"] == inviterUid);
+  if (idx >= 0) {
+    users[idx]["points_total"] = (users[idx]["points_total"] as int) + 50;
+  }
+  // 2) notificação de conversão
+  final noti = {
+    "id": "n-${DateTime.now().millisecondsSinceEpoch}",
+    "inviter_uid": inviterUid,
+    "inviter_code": inviterCode,
+    "invited_name": invitedName,
+    "points_awarded": 50,
+    "type": "conversion",
+    "created_at": DateTime.now().toIso8601String()
+  };
+  final notis = (data["notifications"] as List).cast<Map<String, dynamic>>();
+  notis.add(noti);
+
+  // 3) checar bônus
+  final every = (data["settings"]["bonus_every"] as int);
+  final totalConv = notis.where((n) => n["inviter_uid"] == inviterUid && n["type"] == "conversion").length;
+  if (every > 0 && totalConv % every == 0) {
+    // bônus
+    final bonusPts = (data["settings"]["bonus_points"] as int);
+    users[idx]["points_total"] = (users[idx]["points_total"] as int) + bonusPts;
+    notis.add({
+      "id": "n-bonus-${DateTime.now().millisecondsSinceEpoch}",
+      "inviter_uid": inviterUid,
+      "inviter_code": inviterCode,
+      "invited_name": "", // não se aplica
+      "points_awarded": bonusPts,
+      "type": "bonus",
+      "created_at": DateTime.now().toIso8601String()
+    });
+  }
+
+  data["users"] = users;
+  data["notifications"] = notis;
+  await store.writeAll(data);
+}
+
+Checklist de testes
+-------------------
+[ ] Criar Usuário A (código 12345). Sem código de indicação. Pontos = 0. Dashboard mostra botão “Copiar código” funcionando.
+[ ] Criar Usuário B (código 54321) informando “Código de indicação = 12345” → A recebe +50 e notificação type="conversion".
+[ ] Repetir até alcançar múltiplos de *bonus_every* → verificar notificação type="bonus" e soma de pontos extra.
+[ ] Notificações filtram corretamente por usuário logado.
+[ ] Perfil permite editar nome/email/sexo/idade e persiste no ÚNICO JSON.
+[ ] Validações: código único (5 dígitos), idade >=13, email válido, não pontuar auto-indicação (invite == my_code do novo usuário).
+
+Critérios de aceite
+-------------------
+- Todos os dados (users, notifications, session, settings) residem em UM ÚNICO arquivo JSON.
+- Dashboard exibe pontos, código e botão de copiar.
+- Gamificação exibe corretamente “Faltam X conversões...” ou mensagem de bônus.
+- Notificações registram conversões e bônus.
+- Perfil edita dados básicos e persiste no mesmo JSON.
+
+

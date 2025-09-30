@@ -1,0 +1,49 @@
+# MGM App — Documentação do MVP
+
+## Visão Geral
+Este projeto Flutter implementa um front-end de Member-Get-Member seguindo o roteiro definido. Toda a informação do app (sessão, usuários, notificações e configurações) é persistida em **um único arquivo JSON local (`data.json`)**, sem backend externo.
+
+Principais fluxos entregues:
+- Cadastro/login com validação de dados, código próprio único (5 dígitos) e opção de inserir código de indicação.
+- Regras de indicação atribuindo +50 pontos por conversão e bônus adicionais conforme a meta configurada.
+- Dashboard com saudação, total de pontos, botão para copiar o código e card de gamificação indicando quantas conversões faltam para o próximo bônus.
+- Lista de notificações (conversões e bônus) filtrada pelo usuário logado, com datas formatadas.
+- Edição de perfil (nome, e-mail, sexo, idade) com persistência no mesmo JSON.
+
+## Estrutura do Código
+```
+lib/
+  main.dart                 # Entrada da aplicação e rotas nomeadas
+  routes.dart               # Constantes de navegação
+  models/
+    user.dart               # Modelo AppUser com toJson/fromJson e copyWith
+    app_notification.dart   # Modelo AppNotification
+  services/
+    local_store.dart        # Acesso ao arquivo único data.json
+    data_repository.dart    # Regras de negócio, sessão, pontos e notificações
+  screens/
+    login_signup_screen.dart
+    dashboard_screen.dart
+    notifications_screen.dart
+    profile_screen.dart
+```
+
+## Como Executar
+1. **Pré-requisitos**: Flutter 3.x instalado e configurado.
+2. Acesse o diretório do app: `cd mgm_app`.
+3. Instale dependências: `flutter pub get`.
+4. Execute no dispositivo ou emulador desejado: `flutter run`.
+
+### Testes
+- Há um teste básico garantindo que a tela de cadastro carregue: `flutter test`.
+
+## Dados e Persistência
+- O arquivo único `data.json` é gerenciado por `lib/services/local_store.dart`.
+- Na primeira execução, o app cria o arquivo nas pastas de documentos da plataforma (por exemplo, em iOS simulators: `Library/Application Support/data.json`; em Android: `/data/data/<package>/app_flutter/data.json`).
+- O seed inicial inclui dois usuários de exemplo, notificações de conversão e bônus, além das configurações `{ bonus_every: 3, bonus_points: 50 }`.
+- Toda interação (cadastro, edição, notificações) atualiza este mesmo arquivo JSON, mantendo o MVP íntegro sem backend.
+
+## Observações
+- A lógica de gamificação e pontos está centralizada em `DataRepository.awardConversionPoints`, que também gera as notificações.
+- O botão "Copiar código" utiliza `Clipboard.setData`, exibindo um `SnackBar` de confirmação.
+- Caso necessário resetar o estado, basta apagar o arquivo `data.json`; o app recriará o seed automaticamente na próxima inicialização.
