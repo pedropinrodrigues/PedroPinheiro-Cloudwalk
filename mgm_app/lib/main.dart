@@ -1,7 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shelf/shelf.dart';
+import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import 'routes.dart';
 import 'screens/dashboard_screen.dart';
@@ -15,10 +20,47 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final supportDir = await getApplicationSupportDirectory();
   Hive.init(supportDir.path);
-  // Helpful while debugging export paths.
   debugPrint('Hive dir: ${supportDir.path}');
+
   await DataRepository.instance.ensureInitialized();
+
+  if (!kReleaseMode) {
+    unawaited(_startExportServer(supportDir.path));
+  }
   runApp(const MgmApp());
+}
+
+Future<void> _startExportServer(String hiveDir) async {
+  debugPrint('Export server usando dir: $hiveDir');
+  final port =
+      int.tryParse(const String.fromEnvironment('EXPORT_PORT')) ?? 8090;
+  final handler = Pipeline().addMiddleware(logRequests()).addHandler((
+    Request request,
+  ) async {
+    if (request.url.path == 'export') {
+      try {
+        final json = await DataRepository.instance.exportAsJson();
+        return Response.ok(
+          json,
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Content-Disposition': 'attachment; filename="data.json"',
+          },
+        );
+      } catch (error, stackTrace) {
+        debugPrint('Export error: $error\n$stackTrace');
+        return Response.internalServerError(body: 'Erro ao exportar: $error');
+      }
+    }
+    return Response.notFound('Use /export para baixar o JSON.');
+  });
+
+  try {
+    final server = await shelf_io.serve(handler, '127.0.0.1', port);
+    debugPrint('Export server ativo em http://127.0.0.1:${server.port}/export');
+  } catch (error) {
+    debugPrint('Falha ao subir export server: $error');
+  }
 }
 
 class MgmApp extends StatelessWidget {

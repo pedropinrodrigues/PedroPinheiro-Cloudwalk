@@ -59,6 +59,8 @@ lib/
 - Todos os fluxos (cadastro, edição de perfil, gamificação, notificações) trabalham sobre essa camada Hive, preservando a estrutura `{ settings, session, users, notifications }`.
 
 ### Exportando dados Hive (detalhado)
+Quando executado em modo debug, o app já sobe um servidor local em `http://127.0.0.1:8090/export` (caso a porta esteja livre), facilitando a inspeção do JSON sem precisar rodar o script manualmente.
+
 1. **Descobrir o diretório atual do Hive**: quando o app inicia, o log mostra `Hive dir: <caminho>`. No simulador iOS esse caminho muda a cada reinstalação; use `--sim-root` para que o script encontre automaticamente o último container.
 2. **Rodar o servidor de export** (exemplos):
    ```bash
