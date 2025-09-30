@@ -57,7 +57,8 @@ class LocalStoreImpl implements LocalStore {
       final projectFile = File(p.join(_projectDirPath(), 'assets', _fileName));
       return projectFile;
     }
-    final directory = await getApplicationDocumentsDirectory();
+    final directory = await getApplicationSupportDirectory();
+    await directory.create(recursive: true);
     final filePath = p.join(directory.path, _fileName);
     return File(filePath);
   }

@@ -42,7 +42,7 @@ lib/
 - O arquivo único `data.json` é gerenciado por `lib/services/local_store.dart`.
 - O seed está versionado em `assets/data.json`; ele é carregado automaticamente na primeira inicialização (ou usado como fallback caso o arquivo real seja removido/corrompido).
 - **Durante o desenvolvimento em macOS/Windows/Linux** o próprio `assets/data.json` atua como "banco" — qualquer cadastro/edição reflete imediatamente nesse arquivo.
-- Em Android/iOS, o app copia o JSON para o diretório de documentos (ex.: iOS simulators `Library/Application Support/data.json`, Android `/data/data/<package>/app_flutter/data.json`) e também tenta espelhar as alterações em `assets/data.json` quando possível.
+- Em Android/iOS, o app grava no diretório de suporte do aplicativo (ex.: iOS simulators `Library/Application Support/data.json`, Android `/data/data/<package>/app_flutter/data.json`) e também tenta espelhar as alterações em `assets/data.json` quando possível.
 - No Flutter web, os dados ficam apenas em memória (reiniciar/atualizar o navegador restaura o seed).
 - O seed inicial inclui dois usuários de exemplo, notificações de conversão e bônus, além das configurações `{ bonus_every: 3, bonus_points: 50 }`.
 - Toda interação (cadastro, edição, notificações, login) atualiza esse mesmo JSON, mantendo o MVP íntegro sem backend.
