@@ -25,6 +25,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _loadData();
   }
 
+  Future<void> _handleLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Sair da conta'),
+          content:
+              const Text('Tem certeza de que deseja encerrar a sessão atual?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Sair'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    await DataRepository.instance.clearSession();
+    if (!mounted) return;
+    Navigator.of(context).pushNamedAndRemoveUntil(AppRoutes.login, (_) => false);
+  }
+
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
@@ -273,6 +302,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 await _loadData();
               }
             },
+          ),
+          const SizedBox(width: 8),
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: OutlinedButton.icon(
+              onPressed: _handleLogout,
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Sair'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.textPrimary,
+                side: const BorderSide(color: AppColors.border),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                minimumSize: const Size(0, 40),
+                textStyle: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
         ],
       ),

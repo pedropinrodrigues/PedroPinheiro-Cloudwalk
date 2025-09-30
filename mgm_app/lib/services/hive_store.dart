@@ -9,24 +9,24 @@ class HiveStore {
   static const _dataKey = 'root';
 
   Future<void> ensureInitialized() async {
-    if (!Hive.isAdapterRegistered(0)) {
-      // No custom adapters required; placeholder to satisfy lint tools if needed.
-    }
     if (!Hive.isBoxOpen(_boxName)) {
-      final box = await Hive.openBox<dynamic>(_boxName);
-      if (!box.containsKey(_dataKey)) {
-        await box.put(_dataKey, _deepCopy(buildSeedData()));
-      }
+      await Hive.openBox<dynamic>(_boxName);
+    }
+    final box = Hive.box<dynamic>(_boxName);
+    if (!box.containsKey(_dataKey)) {
+      await box.put(_dataKey, _deepCopy(buildSeedData()));
     }
   }
 
   Future<Map<String, dynamic>> readAll() async {
+    await ensureInitialized();
     final box = Hive.box<dynamic>(_boxName);
     final raw = box.get(_dataKey) ?? {};
     return Map<String, dynamic>.from(_deepCopy(raw) as Map);
   }
 
   Future<void> writeAll(Map<String, dynamic> data) async {
+    await ensureInitialized();
     final box = Hive.box<dynamic>(_boxName);
     await box.put(_dataKey, _deepCopy(data));
   }

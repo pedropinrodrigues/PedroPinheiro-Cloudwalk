@@ -23,6 +23,12 @@ class DataRepository {
 
   Future<void> _write(Map<String, dynamic> data) => _store.writeAll(data);
 
+  Future<void> clearSession() async {
+    final data = await _read();
+    data['session'] = {'current_uid': null};
+    await _write(data);
+  }
+
   Future<AppUser?> getCurrentUser() async {
     final data = await _read();
     final session = Map<String, dynamic>.from(data['session'] as Map);
