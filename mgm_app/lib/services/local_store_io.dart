@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path_provider/path_provider.dart';
 
@@ -10,14 +12,20 @@ import 'local_store_seed.dart';
 class LocalStoreImpl implements LocalStore {
   static const _fileName = 'data.json';
 
+  File? _cachedFile;
+
   Future<File> _file() async {
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/$_fileName';
-    final file = File(filePath);
+    if (_cachedFile != null) {
+      return _cachedFile!;
+    }
+
+    final file = await _resolvePreferredFile();
     if (!await file.exists()) {
       final seed = await _loadSeedMap();
+      await file.create(recursive: true);
       await file.writeAsString(jsonEncode(seed), flush: true);
     }
+    _cachedFile = file;
     return file;
   }
 
@@ -32,6 +40,7 @@ class LocalStoreImpl implements LocalStore {
   Future<void> writeAll(Map<String, dynamic> data) async {
     final file = await _file();
     await file.writeAsString(jsonEncode(data), flush: true);
+    await _maybeMirrorToProjectFile(data);
   }
 
   Future<Map<String, dynamic>> _loadSeedMap() async {
@@ -40,6 +49,39 @@ class LocalStoreImpl implements LocalStore {
       return Map<String, dynamic>.from(jsonDecode(raw) as Map);
     } catch (_) {
       return buildSeedData();
+    }
+  }
+
+  Future<File> _resolvePreferredFile() async {
+    if (_shouldUseProjectFile()) {
+      final projectFile = File(p.join(_projectDirPath(), 'assets', _fileName));
+      return projectFile;
+    }
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = p.join(directory.path, _fileName);
+    return File(filePath);
+  }
+
+  bool _shouldUseProjectFile() {
+    return Platform.isMacOS || Platform.isLinux || Platform.isWindows;
+  }
+
+  String _projectDirPath() {
+    return Directory.current.path;
+  }
+
+  Future<void> _maybeMirrorToProjectFile(Map<String, dynamic> data) async {
+    if (_shouldUseProjectFile()) {
+      // Already writing directly to project file.
+      return;
+    }
+
+    try {
+      final projectFile = File(p.join(_projectDirPath(), 'assets', _fileName));
+      await projectFile.create(recursive: true);
+      await projectFile.writeAsString(jsonEncode(data), flush: true);
+    } catch (_) {
+      // Ignore mirroring errors on platforms without direct filesystem access.
     }
   }
 }

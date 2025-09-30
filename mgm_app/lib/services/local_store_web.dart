@@ -1,6 +1,4 @@
 import 'dart:convert';
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 
 import 'package:flutter/services.dart' show rootBundle;
 
@@ -8,33 +6,21 @@ import 'local_store.dart';
 import 'local_store_seed.dart';
 
 class LocalStoreImpl implements LocalStore {
-  static const _storageKey = 'mgm_app_data';
-  bool _initialised = false;
+  Map<String, dynamic>? _cache;
 
   @override
   Future<Map<String, dynamic>> readAll() async {
-    await _ensureSeeded();
-    final raw = html.window.localStorage[_storageKey];
-    if (raw == null) {
-      return buildSeedData();
+    if (_cache != null) {
+      return _clone(_cache!);
     }
-    return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    final seed = await _loadSeedMap();
+    _cache = seed;
+    return _clone(seed);
   }
 
   @override
   Future<void> writeAll(Map<String, dynamic> data) async {
-    await _ensureSeeded();
-    html.window.localStorage[_storageKey] = jsonEncode(data);
-  }
-
-  Future<void> _ensureSeeded() async {
-    if (_initialised) return;
-    final existing = html.window.localStorage[_storageKey];
-    if (existing == null) {
-      final seed = await _loadSeedMap();
-      html.window.localStorage[_storageKey] = jsonEncode(seed);
-    }
-    _initialised = true;
+    _cache = _clone(data);
   }
 
   Future<Map<String, dynamic>> _loadSeedMap() async {
@@ -44,6 +30,10 @@ class LocalStoreImpl implements LocalStore {
     } catch (_) {
       return buildSeedData();
     }
+  }
+
+  Map<String, dynamic> _clone(Map<String, dynamic> source) {
+    return Map<String, dynamic>.from(jsonDecode(jsonEncode(source)) as Map);
   }
 }
 
