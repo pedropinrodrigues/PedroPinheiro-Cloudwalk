@@ -7,13 +7,19 @@ import 'package:path/path.dart' as p;
 Future<void> main(List<String> arguments) async {
   final args = _parseArgs(arguments);
   final hiveDir = args['hive-dir'];
+  final simRoot = args['sim-root'];
   final port = int.tryParse(args['port'] ?? '') ?? 8080;
   final bindAddress = args['bind'] ?? InternetAddress.loopbackIPv4.address;
 
-  final targetDirPath = hiveDir ?? Directory.current.path;
-  final sourceDir = Directory(targetDirPath);
+  final Directory sourceDir;
+  if (simRoot != null) {
+    sourceDir = _resolveLatestSimulatorAppDir(simRoot);
+  } else {
+    final targetDirPath = hiveDir ?? Directory.current.path;
+    sourceDir = Directory(targetDirPath);
+  }
   if (!sourceDir.existsSync()) {
-    stderr.writeln('Hive directory "$targetDirPath" not found.');
+    stderr.writeln('Hive directory "${sourceDir.path}" not found.');
     exit(1);
   }
 
@@ -65,6 +71,44 @@ Map<String, String> _parseArgs(List<String> args) {
     }
   }
   return result;
+}
+
+Directory _resolveLatestSimulatorAppDir(String simRootPath) {
+  final rootDir = Directory(simRootPath);
+  if (!rootDir.existsSync()) {
+    stderr.writeln('Simulator root "$simRootPath" not found.');
+    exit(1);
+  }
+
+  Directory? bestSupportDir;
+  DateTime? bestModified;
+
+  for (final entity in rootDir.listSync()) {
+    if (entity is! Directory) continue;
+    final supportDir = Directory(
+      p.join(entity.path, 'Library', 'Application Support'),
+    );
+    if (!supportDir.existsSync()) continue;
+    final hasBox = supportDir.listSync().whereType<File>().any(
+      (file) => p.basename(file.path).startsWith('mgm_data_box'),
+    );
+    if (!hasBox) continue;
+    final modified = supportDir.statSync().modified;
+    if (bestSupportDir == null || modified.isAfter(bestModified!)) {
+      bestSupportDir = supportDir;
+      bestModified = modified;
+    }
+  }
+
+  if (bestSupportDir == null) {
+    stderr.writeln(
+      'Nenhuma pasta com arquivos mgm_data_box.* encontrada em "$simRootPath". Rode o app primeiro.',
+    );
+    exit(1);
+  }
+
+  stdout.writeln('Usando Hive dir: ${bestSupportDir.path}');
+  return bestSupportDir;
 }
 
 Future<String> _exportSnapshot(Directory sourceDir) async {
