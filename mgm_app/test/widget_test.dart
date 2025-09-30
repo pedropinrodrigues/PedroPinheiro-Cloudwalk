@@ -7,9 +7,9 @@ void main() {
     await tester.pumpWidget(const MgmApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Programa Indique e Ganhe'), findsOneWidget);
+    expect(find.text('Crie sua conta'), findsOneWidget);
     expect(
-      find.text('Cadastre-se para participar do Member-Get-Member'),
+      find.text('Ganhe pontos com seu código de indicação.'),
       findsOneWidget,
     );
   });

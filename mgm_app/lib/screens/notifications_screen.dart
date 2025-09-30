@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../models/app_notification.dart';
 import '../services/data_repository.dart';
+import '../theme/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -56,9 +57,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
               onRefresh: _onRefresh,
               child: ListView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 200),
-                  Center(child: Text('Nenhuma notificação por enquanto.')),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 48,
+                ),
+                children: [
+                  Icon(
+                    Icons.notifications_none,
+                    size: 48,
+                    color: AppColors.textSecondary.withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Sem notificações ainda. Compartilhe seu código para começar a pontuar.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ],
               ),
             );
@@ -67,24 +83,39 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             onRefresh: _onRefresh,
             child: ListView.separated(
               physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(24),
               itemCount: notifications.length,
-              separatorBuilder: (_, __) => const Divider(height: 0),
+              separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final notification = notifications[index];
                 final isBonus = notification.type == 'bonus';
-                final icon = isBonus
-                    ? Icons.star_outline
-                    : Icons.person_add_alt_1;
-                final message = isBonus
-                    ? 'BÔNUS desbloqueado! +${notification.pointsAwarded} pontos.'
-                    : '${notification.invitedName} cadastrou-se usando seu código. +${notification.pointsAwarded} pontos.';
-                final dateText = _dateFormat.format(
-                  notification.createdAt.toLocal(),
-                );
-                return ListTile(
-                  leading: Icon(icon),
-                  title: Text(message),
-                  subtitle: Text(dateText),
+                final icon = isBonus ? Icons.star : Icons.person_add_alt_1;
+                final iconColor = isBonus ? AppColors.bonus : AppColors.success;
+                final title = isBonus
+                    ? 'Bônus desbloqueado!'
+                    : '${notification.invitedName} cadastrou-se usando seu código.';
+                final subtitle =
+                    '+${notification.pointsAwarded} pontos • ${_dateFormat.format(notification.createdAt.toLocal())}';
+
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: iconColor.withValues(alpha: 0.12),
+                      child: Icon(icon, color: iconColor),
+                    ),
+                    title: Text(
+                      title,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
                 );
               },
             ),

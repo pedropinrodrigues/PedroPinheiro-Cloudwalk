@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../models/user.dart';
 import '../routes.dart';
 import '../services/data_repository.dart';
+import '../theme/app_colors.dart';
 
 class LoginSignupScreen extends StatefulWidget {
   const LoginSignupScreen({super.key});
@@ -253,182 +254,244 @@ class _LoginSignupScreenState extends State<LoginSignupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Programa Indique e Ganhe')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Cadastre-se para participar do Member-Get-Member',
-                style: Theme.of(context).textTheme.titleLarge,
+                'Crie sua conta',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Ganhe pontos com seu código de indicação.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(labelText: 'Nome completo'),
-                textCapitalization: TextCapitalization.words,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  if (value!.trim().length < 2) {
-                    return 'Informe pelo menos 2 caracteres';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(labelText: 'E-mail'),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  final pattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                  if (!pattern.hasMatch(value!.trim())) {
-                    return 'Informe um e-mail válido';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _selectedSex,
-                items: _sexOptions
-                    .map(
-                      (sex) => DropdownMenuItem(value: sex, child: Text(sex)),
-                    )
-                    .toList(),
-                decoration: const InputDecoration(labelText: 'Sexo'),
-                onChanged: (value) => setState(() => _selectedSex = value),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Selecione uma opção'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _ageController,
-                decoration: const InputDecoration(labelText: 'Idade'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  final parsed = int.tryParse(value!.trim());
-                  if (parsed == null || parsed < 13) {
-                    return 'Idade mínima 13 anos';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _codeController,
-                decoration: const InputDecoration(
-                  labelText: 'Seu código (5 dígitos)',
-                  counterText: '',
-                ),
-                keyboardType: TextInputType.number,
-                maxLength: 5,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  final cleaned = value!.trim();
-                  if (!RegExp(r'^\d{5}$').hasMatch(cleaned)) {
-                    return 'Use exatamente 5 dígitos';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _passwordController,
-                decoration: InputDecoration(
-                  labelText: 'Senha',
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() {
-                      _passwordVisible = !_passwordVisible;
-                    }),
-                    icon: Icon(
-                      _passwordVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome completo',
+                            hintText: 'Seu nome',
+                          ),
+                          textCapitalization: TextCapitalization.words,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            if (value!.trim().length < 2) {
+                              return 'Informe pelo menos 2 caracteres';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            hintText: 'voce@exemplo.com',
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            final pattern = RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            );
+                            if (!pattern.hasMatch(value!.trim())) {
+                              return 'Informe um e-mail válido';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedSex,
+                          items: _sexOptions
+                              .map(
+                                (sex) => DropdownMenuItem(
+                                  value: sex,
+                                  child: Text(sex),
+                                ),
+                              )
+                              .toList(),
+                          decoration: const InputDecoration(
+                            labelText: 'Sexo',
+                            hintText: 'Selecione uma opção',
+                          ),
+                          onChanged: (value) =>
+                              setState(() => _selectedSex = value),
+                          validator: (value) => value == null || value.isEmpty
+                              ? 'Selecione uma opção'
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _ageController,
+                          decoration: const InputDecoration(
+                            labelText: 'Idade',
+                            hintText: '18',
+                          ),
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            final parsed = int.tryParse(value!.trim());
+                            if (parsed == null || parsed < 13) {
+                              return 'Idade mínima 13 anos';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _codeController,
+                          decoration: const InputDecoration(
+                            labelText: 'Seu código (5 dígitos)',
+                            hintText: '12345',
+                            counterText: '',
+                          ),
+                          keyboardType: TextInputType.number,
+                          maxLength: 5,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            final cleaned = value!.trim();
+                            if (!RegExp(r'^\d{5}$').hasMatch(cleaned)) {
+                              return 'Use exatamente 5 dígitos';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            labelText: 'Senha',
+                            hintText: 'Crie uma senha',
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(() {
+                                _passwordVisible = !_passwordVisible;
+                              }),
+                              icon: Icon(
+                                _passwordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          obscureText: !_passwordVisible,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            if (value!.length < 6) {
+                              return 'Use pelo menos 6 caracteres';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _confirmPasswordController,
+                          decoration: InputDecoration(
+                            labelText: 'Confirme a senha',
+                            hintText: 'Repita sua senha',
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(() {
+                                _confirmPasswordVisible =
+                                    !_confirmPasswordVisible;
+                              }),
+                              icon: Icon(
+                                _confirmPasswordVisible
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                          ),
+                          obscureText: !_confirmPasswordVisible,
+                          validator: (value) {
+                            final base = _requiredValidator(value);
+                            if (base != null) return base;
+                            if (value != _passwordController.text) {
+                              return 'As senhas não conferem';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _inviteController,
+                          decoration: const InputDecoration(
+                            labelText: 'Código de indicação (opcional)',
+                            hintText: 'Código de quem te convidou',
+                            counterText: '',
+                          ),
+                          keyboardType: TextInputType.number,
+                          maxLength: 5,
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return null;
+                            }
+                            if (!RegExp(r'^\d{5}$').hasMatch(value.trim())) {
+                              return 'Código de indicação deve ter 5 dígitos';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Seu código precisa ter 5 dígitos e ser único.',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: _isSubmitting ? null : _handleSubmit,
+                          child: _isSubmitting
+                              ? const SizedBox(
+                                  height: 16,
+                                  width: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Criar conta'),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                obscureText: !_passwordVisible,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  if (value!.length < 6) {
-                    return 'Use pelo menos 6 caracteres';
-                  }
-                  return null;
-                },
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _confirmPasswordController,
-                decoration: InputDecoration(
-                  labelText: 'Confirme a senha',
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() {
-                      _confirmPasswordVisible = !_confirmPasswordVisible;
-                    }),
-                    icon: Icon(
-                      _confirmPasswordVisible
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                    ),
-                  ),
+              const SizedBox(height: 16),
+              Text(
+                'Ao continuar, você aceita os termos.',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
                 ),
-                obscureText: !_confirmPasswordVisible,
-                validator: (value) {
-                  final base = _requiredValidator(value);
-                  if (base != null) return base;
-                  if (value != _passwordController.text) {
-                    return 'As senhas não conferem';
-                  }
-                  return null;
-                },
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _inviteController,
-                decoration: const InputDecoration(
-                  labelText: 'Código de indicação (opcional)',
-                  counterText: '',
-                ),
-                keyboardType: TextInputType.number,
-                maxLength: 5,
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return null;
-                  }
-                  if (!RegExp(r'^\d{5}$').hasMatch(value.trim())) {
-                    return 'Código de indicação deve ter 5 dígitos';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _isSubmitting ? null : _handleSubmit,
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 16,
-                        width: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Cadastrar'),
-              ),
-              const SizedBox(height: 12),
-              TextButton(
+              const SizedBox(height: 16),
+              OutlinedButton(
                 onPressed: _loginWithAccount,
-                child: const Text('Já tenho cadastro'),
+                child: const Text('Já tenho uma conta'),
               ),
             ],
           ),

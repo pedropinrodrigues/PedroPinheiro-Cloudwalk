@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/user.dart';
 import '../services/data_repository.dart';
+import '../theme/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -113,99 +114,143 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('Perfil')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_user != null)
-                      Card(
-                        child: ListTile(
-                          title: const Text('Seu código'),
-                          subtitle: Text(_user!.myCode),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Seu perfil',
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Atualize seus dados básicos. Seu código permanece o mesmo.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Nome completo',
+                                hintText: 'Seu nome',
+                              ),
+                              textCapitalization: TextCapitalization.words,
+                              validator: (value) {
+                                final base = _requiredValidator(value);
+                                if (base != null) return base;
+                                if (value!.trim().length < 2) {
+                                  return 'Informe pelo menos 2 caracteres';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                labelText: 'E-mail',
+                                hintText: 'voce@exemplo.com',
+                              ),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) {
+                                final base = _requiredValidator(value);
+                                if (base != null) return base;
+                                final pattern = RegExp(
+                                  r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                                );
+                                if (!pattern.hasMatch(value!.trim())) {
+                                  return 'Informe um e-mail válido';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            DropdownButtonFormField<String>(
+                              initialValue: _selectedSex,
+                              items: _sexOptions
+                                  .map(
+                                    (sex) => DropdownMenuItem(
+                                      value: sex,
+                                      child: Text(sex),
+                                    ),
+                                  )
+                                  .toList(),
+                              decoration: const InputDecoration(
+                                labelText: 'Sexo',
+                                hintText: 'Selecione uma opção',
+                              ),
+                              onChanged: (value) =>
+                                  setState(() => _selectedSex = value),
+                              validator: (value) =>
+                                  value == null || value.isEmpty
+                                  ? 'Selecione uma opção'
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              controller: _ageController,
+                              decoration: const InputDecoration(
+                                labelText: 'Idade',
+                                hintText: '18',
+                              ),
+                              keyboardType: TextInputType.number,
+                              validator: (value) {
+                                final base = _requiredValidator(value);
+                                if (base != null) return base;
+                                final parsed = int.tryParse(value!.trim());
+                                if (parsed == null || parsed < 13) {
+                                  return 'Idade mínima 13 anos';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            TextFormField(
+                              initialValue: _user?.myCode ?? '',
+                              enabled: false,
+                              decoration: const InputDecoration(
+                                labelText: 'Seu código',
+                                helperText:
+                                    'Não é possível alterar no momento.',
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            FilledButton(
+                              onPressed: _saving ? null : _save,
+                              child: _saving
+                                  ? const SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text('Salvar alterações'),
+                            ),
+                          ],
                         ),
                       ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome completo',
-                      ),
-                      textCapitalization: TextCapitalization.words,
-                      validator: (value) {
-                        final base = _requiredValidator(value);
-                        if (base != null) return base;
-                        if (value!.trim().length < 2) {
-                          return 'Informe pelo menos 2 caracteres';
-                        }
-                        return null;
-                      },
                     ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: const InputDecoration(labelText: 'E-mail'),
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (value) {
-                        final base = _requiredValidator(value);
-                        if (base != null) return base;
-                        final pattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                        if (!pattern.hasMatch(value!.trim())) {
-                          return 'Informe um e-mail válido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedSex,
-                      items: _sexOptions
-                          .map(
-                            (sex) =>
-                                DropdownMenuItem(value: sex, child: Text(sex)),
-                          )
-                          .toList(),
-                      decoration: const InputDecoration(labelText: 'Sexo'),
-                      onChanged: (value) =>
-                          setState(() => _selectedSex = value),
-                      validator: (value) => value == null || value.isEmpty
-                          ? 'Selecione uma opção'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _ageController,
-                      decoration: const InputDecoration(labelText: 'Idade'),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        final base = _requiredValidator(value);
-                        if (base != null) return base;
-                        final parsed = int.tryParse(value!.trim());
-                        if (parsed == null || parsed < 13) {
-                          return 'Idade mínima 13 anos';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _saving ? null : _save,
-                      child: _saving
-                          ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Salvar alterações'),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
     );
