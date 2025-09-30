@@ -39,13 +39,13 @@ lib/
 - Há um teste básico garantindo que a tela de cadastro carregue: `flutter test`.
 
 ## Dados e Persistência
-- O arquivo único `data.json` é gerenciado por `lib/services/local_store.dart`.
-- O seed está versionado em `assets/data.json`; ele é carregado automaticamente na primeira inicialização (ou usado como fallback caso o arquivo real seja removido/corrompido).
-- **Durante o desenvolvimento em macOS/Windows/Linux** o próprio `assets/data.json` atua como "banco" — qualquer cadastro/edição reflete imediatamente nesse arquivo.
-- Em Android/iOS, o app grava no diretório de suporte do aplicativo (ex.: iOS simulators `Library/Application Support/data.json`, Android `/data/data/<package>/app_flutter/data.json`) e também tenta espelhar as alterações em `assets/data.json` quando possível.
-- No Flutter web, os dados ficam apenas em memória (reiniciar/atualizar o navegador restaura o seed).
-- O seed inicial inclui dois usuários de exemplo, notificações de conversão e bônus, além das configurações `{ bonus_every: 3, bonus_points: 50 }`.
-- Toda interação (cadastro, edição, notificações, login) atualiza esse mesmo JSON, mantendo o MVP íntegro sem backend.
+- A camada de armazenamento usa **Hive** (ver `lib/services/hive_store.dart`).
+- Na primeira inicialização abrimos a box `mgm_data_box` e carregamos o seed (`assets/data.json`) se necessário.
+- Os dados ficam guardados em um único registro Hive (`root`) que espelha a estrutura original do JSON.
+- No mobile/desktop, os arquivos `.hive` residem no diretório de suporte da aplicação (ex.: iOS `Library/Application Support/mgm_data_box.hive`).
+- No Flutter web, os dados permanecem em memória enquanto a sessão estiver ativa.
+- É possível exportar todo o conteúdo em JSON chamando `DataRepository.exportAsJson()` (útil para backups ou inspeção manual).
+- Todos os fluxos (cadastro, edição de perfil, gamificação, notificações) trabalham sobre essa camada Hive, preservando a estrutura `{ settings, session, users, notifications }`.
 
 ## Observações
 - A lógica de gamificação e pontos está centralizada em `DataRepository.awardConversionPoints`, que também gera as notificações.

@@ -5,14 +5,14 @@ import 'package:uuid/uuid.dart';
 
 import '../models/app_notification.dart';
 import '../models/user.dart';
-import 'local_store.dart';
+import 'hive_store.dart';
 
 class DataRepository {
   DataRepository._internal();
 
   static final DataRepository instance = DataRepository._internal();
 
-  final LocalStore _store = LocalStore();
+  final HiveStore _store = HiveStore();
   final Uuid _uuid = const Uuid();
 
   Future<void> ensureInitialized() async {
@@ -240,6 +240,10 @@ class DataRepository {
       'bonus_every': (settings['bonus_every'] as num).toInt(),
       'bonus_points': (settings['bonus_points'] as num).toInt(),
     };
+  }
+
+  Future<String> exportAsJson({bool pretty = true}) {
+    return _store.exportToJson(pretty: pretty);
   }
 }
 

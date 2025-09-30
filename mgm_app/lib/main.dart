@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:hive_flutter/hive_flutter.dart';
+
 import 'routes.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/login_signup_screen.dart';
@@ -10,6 +12,7 @@ import 'theme/app_colors.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
   await DataRepository.instance.ensureInitialized();
   runApp(const MgmApp());
 }
