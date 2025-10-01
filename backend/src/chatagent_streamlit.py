@@ -6,7 +6,7 @@ from typing import List
 import streamlit as st
 from langchain_core.messages import HumanMessage, AIMessage
 
-from chatagent import criar_agent
+from chatagent import criar_agent, refresh_data
 from relatorio_agent import generate_report
 
 
@@ -27,6 +27,12 @@ st.caption("Converse em português ou gere relatórios analíticos.")
 # Controles laterais (sidebar) para geração de relatórios
 _today = date.today()
 _default_start = _today.replace(day=1)
+
+if st.sidebar.button("Recarregar dados", use_container_width=True):
+    with st.spinner("Recarregando dados..."):
+        refresh_data()
+        st.session_state.report_result = None
+    st.sidebar.success("Dados atualizados!")
 
 start_date = st.sidebar.date_input("Data inicial", value=_default_start)
 end_date = st.sidebar.date_input("Data final", value=_today)

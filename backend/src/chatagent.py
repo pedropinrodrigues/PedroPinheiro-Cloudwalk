@@ -16,11 +16,29 @@ import os
 dotenv.load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
-data = requests.get('http://127.0.0.1:8090/export').json()
+DATA_URL = os.getenv("DATA_URL", "http://127.0.0.1:8090/export")
 
-users = data.get('users', [])
-notifications = data.get('notifications', [])
+data: Dict[str, Any] = {}
+users: List[Dict[str, Any]] = []
+notifications: List[Dict[str, Any]] = []
 
+
+def refresh_data() -> Dict[str, List[Dict[str, Any]]]:
+    """Busca os dados na API, atualiza o cache global e retorna o snapshot."""
+
+    global data, users, notifications
+    response = requests.get(DATA_URL, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    users = data.get('users', [])
+    notifications = data.get('notifications', [])
+    return {
+        'users': users,
+        'notifications': notifications,
+    }
+
+
+refresh_data()
 
 
 # Funções auxiliares para tools
@@ -102,7 +120,9 @@ def get_notifications_by_date(
     type: Optional[str] = None,
     limit: int = 50,
 ) -> str:
-    """Retornar notificações filtradas por convidador, intervalo de datas e tipo."""
+    """Retornar notificações filtradas por convidador, intervalo de datas e tipo.
+        O argumento 'type' pode ser 'conversion' ou 'bonus'.
+    """
 
     if limit <= 0:
         raise ValueError("limit deve ser um inteiro positivo")
@@ -114,9 +134,6 @@ def get_notifications_by_date(
         raise ValueError("start deve ser anterior ou igual a end")
 
     normalized_type = type.lower() if type else None
-    if normalized_type and normalized_type not in {"conversion", "bonus"}:
-        raise ValueError("type deve ser 'conversion' ou 'bonus'")
-
 
     filtered: List[Dict[str, Any]] = []
     for notification in notifications:

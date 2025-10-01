@@ -5,18 +5,13 @@ from typing import Any, Dict, List, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, SystemMessage
 
-import requests
 import dotenv
 import os
 
-from chatagent import _parse_iso8601, _apply_date_window, _to_int
+from chatagent import _parse_iso8601, _apply_date_window, _to_int, refresh_data, users, notifications
 
 dotenv.load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-
-data = requests.get('http://127.0.0.1:8090/export').json()
-users = data.get('users', [])
-notifications = data.get('notifications', [])
 
 
 def analise_content(report: str) -> str:
@@ -160,11 +155,17 @@ def generate_report(
     start_date = _parse_iso8601(start) if start else None
     end_date = _parse_iso8601(end) if end else None
 
-    filtered_users = _filter_by_date_range(users, start_date, end_date, date_key="created_at")
-    filtered_notifications = _filter_by_date_range(notifications, start_date, end_date, date_key="created_at")
+    if not (users or notifications):
+        refresh_data()
+
+    users_data = list(users)
+    notifications_data = list(notifications)
+
+    filtered_users = _filter_by_date_range(users_data, start_date, end_date, date_key="created_at")
+    filtered_notifications = _filter_by_date_range(notifications_data, start_date, end_date, date_key="created_at")
 
     points_summary = _calculate_points_summary(filtered_notifications)
-    top_users = _top_referrers(users, filtered_notifications, limit=5)
+    top_users = _top_referrers(users_data, filtered_notifications, limit=5)
     reference_date = end_date or datetime.now(timezone.utc)
     churned_users = _churn_risk(filtered_users, reference_date)
 
