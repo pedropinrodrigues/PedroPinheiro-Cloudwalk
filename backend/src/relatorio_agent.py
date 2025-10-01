@@ -155,8 +155,7 @@ def generate_report(
     start_date = _parse_iso8601(start) if start else None
     end_date = _parse_iso8601(end) if end else None
 
-    if not (users or notifications):
-        refresh_data()
+    refresh_data()
 
     users_data = list(users)
     notifications_data = list(notifications)

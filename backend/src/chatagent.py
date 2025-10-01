@@ -26,12 +26,20 @@ notifications: List[Dict[str, Any]] = []
 def refresh_data() -> Dict[str, List[Dict[str, Any]]]:
     """Busca os dados na API, atualiza o cache global e retorna o snapshot."""
 
-    global data, users, notifications
+    global data
     response = requests.get(DATA_URL, timeout=10)
     response.raise_for_status()
-    data = response.json()
-    users = data.get('users', [])
-    notifications = data.get('notifications', [])
+    payload = response.json()
+
+    data.clear()
+    data.update(payload)
+
+    users.clear()
+    users.extend(payload.get('users', []) or [])
+
+    notifications.clear()
+    notifications.extend(payload.get('notifications', []) or [])
+
     return {
         'users': users,
         'notifications': notifications,
@@ -82,8 +90,18 @@ def _to_int(value: Any) -> int:
 # TODO Make a query for searching a user using its code, ID, email or name
 
 def search_user(query: str) -> str:
-    """Buscar um usuário pelo código, UID, e-mail ou nome."""
-    lowered = query.lower()
+    """Buscar um usuário pelo código, UID, e-mail, nome ou data de criação."""
+
+    refresh_data()
+
+    lowered = (query or "").strip().lower()
+    target_date = None
+    if query:
+        try:
+            target_date = _parse_iso8601(query)
+        except ValueError:
+            target_date = None
+
     results = []
     for user in users:
         if not isinstance(user, dict):
@@ -92,12 +110,24 @@ def search_user(query: str) -> str:
         email = user.get('email', '') or ''
         uid = user.get('uid', '') or ''
         my_code = user.get('my_code', '') or ''
-        if (
+        created_at_raw = user.get('created_at')
+
+        matches_text = bool(lowered) and (
             lowered in name.lower()
             or lowered in email.lower()
             or lowered in uid.lower()
             or lowered in my_code.lower()
-        ):
+        )
+
+        matches_date = False
+        if target_date and created_at_raw:
+            try:
+                created_at = _parse_iso8601(created_at_raw)
+                matches_date = created_at.date() == target_date.date()
+            except ValueError:
+                matches_date = False
+
+        if matches_text or matches_date:
             results.append(user)
 
     if not results:
@@ -105,7 +135,7 @@ def search_user(query: str) -> str:
 
     formatted = "; ".join(
         [
-            f"UID: {u.get('uid')}, Nome: {u.get('name')}, E-mail: {u.get('email')}, Meu Código: {u.get('my_code')}"
+            f"UID: {u.get('uid')}, Nome: {u.get('name')}, E-mail: {u.get('email')}, Meu Código: {u.get('my_code')}, Total de Pontos: {u.get('points_total')}, Criado em: {u.get('created_at')}, Convidado por: {u.get('invited_by_code')}"
             for u in results
         ]
     )
@@ -120,9 +150,9 @@ def get_notifications_by_date(
     type: Optional[str] = None,
     limit: int = 50,
 ) -> str:
-    """Retornar notificações filtradas por convidador, intervalo de datas e tipo.
-        O argumento 'type' pode ser 'conversion' ou 'bonus'.
-    """
+    """Retornar notificações filtradas por convidador, intervalo de datas e, opcionalmente, por tipo. Os tipos possíveis são 'conversion' e 'bonus'."""
+
+    refresh_data()
 
     if limit <= 0:
         raise ValueError("limit deve ser um inteiro positivo")
@@ -164,6 +194,8 @@ def get_points_summary(
     end: Optional[str] = None,
 ) -> str:
     """Resumir os pontos concedidos no período agrupando por tipo de notificação."""
+
+    refresh_data()
 
     start_dt = _parse_iso8601(start) if start else None
     end_dt = _parse_iso8601(end) if end else None
@@ -207,6 +239,8 @@ def top_referrers(
     limit: int = 5,
 ) -> str:
     """Listar indicadores ranqueados pelo número de conversões no período escolhido."""
+
+    refresh_data()
 
     if limit <= 0:
         raise ValueError("limit deve ser um inteiro positivo")
@@ -253,6 +287,8 @@ def top_referrers(
 def churn_risk(days: int = 7) -> str:
     """Identificar usuários convidados sem pontos com contas mais antigas que a janela informada."""
 
+    refresh_data()
+
     if days <= 0:
         raise ValueError("days deve ser um inteiro positivo")
 
@@ -295,8 +331,10 @@ def total_points_given_per_time(
         start: Optional[str] = None,
         end: Optional[str] = None,
     ) -> int:
-
     """Retornar o total de pontos concedidos no período especificado. Tem como parâmetro o início e o fim do período."""
+
+    refresh_data()
+
     start_dt = _parse_iso8601(start) if start else None
     end_dt = _parse_iso8601(end) if end else None
 
