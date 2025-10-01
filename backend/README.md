@@ -1,46 +1,62 @@
-# Backend
+# Backend (LangChain + Streamlit)
 
 ## Visão geral
-Este diretório contém um agente implementado com LangChain que consulta dados mockados de um programa de indicações. O agente expõe ferramentas (tools) específicas para consultar usuários, notificações e estatísticas e pode ser utilizado tanto via CLI quanto integrado a uma aplicação Streamlit.
+O backend concentra toda a automação conversacional e a geração de relatórios do desafio Member-Get-Member. Ele é composto por três módulos Python dentro de `src/` que compartilham o mesmo cache de dados obtido a partir da API configurada em `DATA_URL`.
 
-## Estrutura principal
-- `main.py` – inicializa o agente (`criar_agent`) com as tools personalizadas e um prompt em português, além de oferecer um loop de linha de comando (`main`) que mantém histórico de conversa.
+## Módulos Python
 
-## Ferramentas disponíveis
-Todas as tools retornam JSON para fácil serialização:
-- `search_user(query)` – busca usuários pelo nome, e-mail, UID ou código (`my_code`).
-- `get_notifications_by_date(inviter_uid, start, end, type, limit)` – filtra notificações por convidador, janela temporal e tipo (`conversion`, `bonus`).
-- `get_points_summary(inviter_uid, start, end)` – retorna totais de pontos e soma por tipo de evento no período.
-- `top_referrers(start, end, limit)` – ranqueia os usuários com mais conversões no intervalo.
-- `churn_risk(days)` – lista convidados sem pontos cuja conta é mais antiga que a janela informada.
+### `src/chatagent.py`
+Responsável por tudo que o agente precisa para funcionar:
+- **Carregamento de dados**: `refresh_data()` consulta `DATA_URL`, atualiza os caches globais (`users`, `notifications`) e é chamado automaticamente em cada tool antes do processamento.
+- **Helpers**: `_parse_iso8601`, `_apply_date_window`, `_to_int` padronizam parsing de datas e manipulação numérica.
+- **Ferramentas LangChain**:
+  - `search_user(query)` – aceita nome, e-mail, UID, `my_code` ou datas (`YYYY-MM-DD`) e retorna um resumo do usuário.
+  - `get_notifications_by_date(...)` – filtra notificações por convidador, período e tipo (qualquer string).
+  - `get_points_summary(...)`, `top_referrers(...)`, `churn_risk(days)`, `total_points_given_per_time(...)`, `get_actual_date()` – agregações utilizadas pelo agente e pelo relatório.
+- **Agente**: `criar_agent()` monta o prompt, registra as tools e devolve um `AgentExecutor` pronto para uso.
+- **CLI**: executado com `python3 src/chatagent.py`, abre um loop interativo em português que mantém `chat_history` em memória.
 
-## Pré-requisitos
-- Python 3.10+
-- Dependências: `langchain`, `langchain-openai`, `openai`, `requests`, `python-dotenv`, `streamlit` (para a camada UI), além de qualquer pacote adicional exigido pelas ferramentas do LangChain em uso.
+### `src/main.py`
+Interface Streamlit oficial:
+- Exibe duas abas: **Chat** (histórico com o agente) e **Relatórios** (preview completo do texto gerado).
+- A barra lateral possui:
+  - botão **Recarregar dados** → chama `refresh_data()` e invalida o relatório em cache;
+  - seleção de período + botão **Gerar relatório** → invoca `generate_report`;
+  - botão **Baixar relatório** para salvar o texto como `.txt`.
+- Reutiliza o mesmo `AgentExecutor` criado em `chatagent.py`, preservando o histórico via `st.session_state.chat_history`.
 
-## Configuração
-1. Crie um arquivo `.env` na raiz do projeto com sua chave da OpenAI:
-   ```env
-   OPENAI_API_KEY=sk-...
-   ```
-2. Garanta que o endpoint de dados mockados esteja acessível em `http://127.0.0.1:8090/export` ou ajuste a URL em `main.py` conforme necessário. O JSON deve seguir a estrutura `{ schema_version, settings, session, users, notifications }`.
+### `src/relatorio_agent.py`
+- Chama `refresh_data()` para garantir dados atualizados e filtra as listas via `_filter_by_date_range`.
+- Consolida métricas (`_calculate_points_summary`, `_top_referrers`, `_churn_risk`) e monta o relatório bruto com os valores JSON.
+- `analise_content()` envia o material bruto para o LLM e devolve um texto estruturado (resumo executivo, métricas, insights e recomendações).
+- `generate_report(start, end)` retorna um dicionário com o texto final, nome do arquivo `.txt` e metadados (período, JSON base). É usado pela aba de relatórios no Streamlit.
 
-## Execução
-Com o ambiente configurado, execute:
-```bash
-python3 main.py
+## Ambiente e variáveis
+Crie `backend/.env` com, no mínimo:
+```env
+OPENAI_API_KEY=sk-...
+DATA_URL=http://127.0.0.1:8090/export  # opcional; padrão aponta para localhost
 ```
-Durante a execução:
-- Digite perguntas em português para o agente.
-- Use `exit` ou `sair` para encerrar o loop.
-- O agente mantém o histórico da conversa (`chat_history`) e resume respostas em linguagem natural, sem repetir JSON bruto.
+A API deve entregar um JSON com as chaves `settings`, `session`, `users` e `notifications`.
 
-## Desenvolvimento
-- Ajuste ou adicione novas tools em `main.py`, reutilizando os helpers (`_parse_iso8601`, `_apply_date_window`, `_to_int`).
-- Utilize `python3 -m compileall main.py` para uma checagem rápida de sintaxe.
-- Atualize o prompt no `criar_agent` se novas instruções forem necessárias.
+## Como executar
+1. **Instalar dependências**
+   ```bash
+   cd backend
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   ```
+2. **CLI** – conversa direta com o agente:
+   ```bash
+   python3 src/chatagent.py
+   ```
+3. **Streamlit** – UI completa com chat e relatórios:
+   ```bash
+   streamlit run src/main.py
+   ```
 
-## Próximos passos sugeridos
-- Criar testes automatizados para validar cada tool com datasets de exemplo.
-- Extrair variáveis configuráveis (URL do dataset, modelo OpenAI, temperatura) para um arquivo de configuração dedicado.
-- Disponibilizar um script de seed para gerar ou atualizar o arquivo de dados consumido pela aplicação móvel.
+## Dicas de desenvolvimento
+- `refresh_data()` é a fonte de verdade; invoque-a sempre que criar novas ferramentas ou análises para manter o cache sincronizado.
+- Utilize `python3 -m compileall src` para validar rapidamente se há erros de sintaxe após alterações.
+- Ao adicionar novas tools, lembre-se de registrá-las na lista de `tools` dentro de `criar_agent()`.
+- O relatório atualmente salva apenas `.txt`; para oferecer PDF/HTML, estenda `generate_report` ou trate o arquivo diretamente na camada Streamlit.

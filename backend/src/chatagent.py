@@ -15,8 +15,7 @@ import os
 
 dotenv.load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
-
-DATA_URL = os.getenv("DATA_URL", "http://127.0.0.1:8090/export")
+DATA_URL = os.getenv("DATA_URL")
 
 data: Dict[str, Any] = {}
 users: List[Dict[str, Any]] = []
